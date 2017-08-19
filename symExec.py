@@ -26,7 +26,22 @@ import global_params
 from test_evm.global_test_params import *
 
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('symExec')
+
+log.setLevel(level=logging.DEBUG)
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+# create formatter
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+log.addHandler(ch)
+# adjust logger's setting
 
 UNSIGNED_BOUND_NUMBER = 2**256 - 1
 CONSTANT_ONES_159 = BitVecVal((1 << 160) - 1, 256)
@@ -160,7 +175,7 @@ def detect_bugs():
         detect_data_concurrency()
         detect_data_money_concurrency()
     log.debug("Results for Reentrancy Bug: " + str(reentrancy_all_paths))
-    print ' reentrancy: %s' % reentrancy_all_paths
+    # ' reentrancy: %s' % reentrancy_all_paths
     reentrancy_bug_found = any([v for sublist in reentrancy_all_paths for v in sublist])
     if not isTesting():
         log.info("\t  Reentrancy bug exists: %s", str(reentrancy_bug_found))
@@ -313,7 +328,7 @@ def closing_message():
 def change_format():
     with open(c_name) as disasm_file:
         file_contents = disasm_file.readlines()
-        with open('temp-beforechangeformat', 'w') as of:
+        with open('temp-beforechangeformat.tmp', 'w') as of:
             of.write(' '.join(file_contents))
         i = 0
         firstLine = file_contents[0].strip('\n')
@@ -560,7 +575,7 @@ def collect_vertices(tokens):
             is_new_line = False
         if tok_string != "=" and tok_string != ">":
             current_line_content += tok_string + " "
-    with open('temp-tokenlistfile', 'w') as of:
+    with open('temp-tokenlistfile.tmp', 'w') as of:
         of.write(''.join(filewriter))
 
     if current_block not in end_ins_dict:
@@ -855,7 +870,7 @@ def sym_exec_block(block, pre_block, visited, depth, stack, mem, memory, global_
             if solver.check() == unsat:
                 log.debug("INFEASIBLE PATH DETECTED")
             else:
-                print "unconditional 1 stack: %s" % stack
+                log.debug("unconditional 1 stack: %s" % stack)
                 left_branch = vertices[block].get_jump_target()
                 stack1 = list(stack)
                 mem1 = dict(mem)
@@ -955,7 +970,7 @@ def sym_exec_ins(start, instr, stack, mem, memory, global_state, path_conditions
     # this should be done before symbolically executing the instruction,
     # since SE will modify the stack and mem
     update_analysis(analysis, instr_parts[0], stack, mem, global_state, path_conditions_and_vars, solver)
-    print 'instr = %s ' % instr
+    log.debug('stack = %s ' % stack)
     log.debug("==============================")
     log.debug("EXECUTING: " + instr)
 
@@ -2062,6 +2077,8 @@ def sym_exec_ins(start, instr, stack, mem, memory, global_state, path_conditions
             exit(UNKOWN_INSTRUCTION)
         raise Exception('UNKNOWN INSTRUCTION: ' + instr_parts[0])
 
+    log.debug('==============END instr exec================')
+    log.debug(' %s \n %s \n %s' % (stack, mem, analysis['gas']))
     print_state(stack, mem, global_state)
 
 # check for evm sequence SWAP4, POP, POP, POP, POP, ISZERO

@@ -8,7 +8,19 @@ from utils import *
 import global_params
 
 log = logging.getLogger(__name__)
+log.setLevel(level=logging.DEBUG)
+# create console handler and set level to debug
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
 
+# create formatter
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+# add formatter to ch
+ch.setFormatter(formatter)
+
+# add ch to logger
+log.addHandler(ch)
 # THIS IS TO DEFINE A SKELETON FOR ANALYSIS
 # FOR NEW TYPE OF ANALYSIS: add necessary details to the skeleton functions
 cur_file = ""
@@ -34,12 +46,13 @@ def init_analysis():
 # Money flow: (source, destination, amount)
 
 def display_analysis(analysis):
-    logging.debug("Money flow: " + str(analysis["money_flow"]))
+    log.debug("Money flow: " + str(analysis["money_flow"]))
 
 # Check if this call has the Reentrancy bug
 # Return true if it does, false otherwise
 def check_reentrancy_bug(path_conditions_and_vars, global_state):
     path_condition = path_conditions_and_vars["path_condition"]
+    log.debug('checking path condition: %s' % path_condition)
     new_path_condition = []
     for expr in path_condition:
         if not is_expr(expr):
@@ -72,6 +85,7 @@ def check_reentrancy_bug(path_conditions_and_vars, global_state):
         with open(reentrancy_report_file, 'a') as r_report:
             r_report.write('\n'+cur_file)
         reported = True
+    log.debug('check result: %s' % ret_val)
     return ret_val
 
 def calculate_gas(opcode, stack, mem, global_state, analysis, solver):
@@ -163,7 +177,7 @@ def update_analysis(analysis, opcode, stack, mem, global_state, path_conditions_
     if opcode == "CALL":
         recipient = stack[1]
         transfer_amount = stack[2]
-        print 'check>>>>>>>>>>>>>>>>>>'
+        log.debug('check>>>>>>>>>>>>>>>>>>')
         reentrancy_result = check_reentrancy_bug(path_conditions_and_vars, global_state)
         analysis["reentrancy_bug"].append(reentrancy_result)
         if isinstance(transfer_amount, (int, long)) and transfer_amount == 0:
@@ -186,6 +200,7 @@ def update_analysis(analysis, opcode, stack, mem, global_state, path_conditions_
                 if address not in analysis["sload"]:
                     analysis["sload"].append(address)
             else:
+                log.error('update analysis encountered Stack underflow')
                 raise ValueError('STACK underflow')
         elif opcode == "SSTORE":
             if len(stack) > 1:
@@ -205,6 +220,7 @@ def update_analysis(analysis, opcode, stack, mem, global_state, path_conditions_
             else:
                 raise ValueError('STACK underflow')
     # print ' update analysis %s ' % analysis
+        log.debug('updated analysis %s' % analysis["gas"])
 
 
 # Check if it is possible to execute a path after a previous path
