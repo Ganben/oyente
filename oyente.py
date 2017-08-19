@@ -179,8 +179,8 @@ def main():
 
         analyze(processed_evm_file, disasm_file)
 
-        os.remove(disasm_file)
-        os.remove(processed_evm_file)
+        #os.remove(disasm_file)
+        #os.remove(processed_evm_file)
 
         if global_params.UNIT_TEST == 2 or global_params.UNIT_TEST == 3:
             exit_code = os.WEXITSTATUS(cmd)
@@ -203,9 +203,9 @@ def main():
                 with open(processed_evm_file, 'w') as of:
                     of.write(bin_str)
 
-            os.remove(processed_evm_file)
-            os.remove(disasm_file)
-            os.remove(disasm_file + '.log')
+            #os.remove(processed_evm_file)
+            #os.remove(disasm_file)
+            #os.remove(disasm_file + '.log')
 
 if __name__ == '__main__':
     main()

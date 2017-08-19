@@ -10,6 +10,7 @@ import json
 import traceback
 import signal
 import time
+import os
 import logging
 from collections import namedtuple
 from z3 import *
@@ -159,6 +160,7 @@ def detect_bugs():
         detect_data_concurrency()
         detect_data_money_concurrency()
     log.debug("Results for Reentrancy Bug: " + str(reentrancy_all_paths))
+    print ' reentrancy: %s' % reentrancy_all_paths
     reentrancy_bug_found = any([v for sublist in reentrancy_all_paths for v in sublist])
     if not isTesting():
         log.info("\t  Reentrancy bug exists: %s", str(reentrancy_bug_found))
@@ -311,6 +313,8 @@ def closing_message():
 def change_format():
     with open(c_name) as disasm_file:
         file_contents = disasm_file.readlines()
+        with open('temp-beforechangeformat', 'w') as of:
+            of.write(' '.join(file_contents))
         i = 0
         firstLine = file_contents[0].strip('\n')
         for line in file_contents:
@@ -347,6 +351,8 @@ def build_cfg_and_analyze():
     with open(c_name, 'r') as disasm_file:
         disasm_file.readline()  # Remove first line
         tokens = tokenize.generate_tokens(disasm_file.readline)
+       # with open('tokenlistfile', 'w') as of:
+       #     of.write(' '.join(str(tokens)))
         collect_vertices(tokens)
         construct_bb()
         construct_static_edges()
@@ -493,8 +499,9 @@ def collect_vertices(tokens):
     current_line_content = ""
     wait_for_push = False
     is_new_block = False
-
+    filewriter = []
     for tok_type, tok_string, (srow, scol), _, line_number in tokens:
+        filewriter.append(' %s %s %s %s %s ------\n' % (tok_type, tok_string, srow, scol, line_number))
         if wait_for_push is True:
             push_val = ""
             for ptok_type, ptok_string, _, _, _ in tokens:
@@ -553,6 +560,8 @@ def collect_vertices(tokens):
             is_new_line = False
         if tok_string != "=" and tok_string != ">":
             current_line_content += tok_string + " "
+    with open('temp-tokenlistfile', 'w') as of:
+        of.write(''.join(filewriter))
 
     if current_block not in end_ins_dict:
         log.debug("current block: %d", current_block)
@@ -755,6 +764,7 @@ def sym_exec_block(block, pre_block, visited, depth, stack, mem, memory, global_
 
     log.debug("Reach block address %d \n", block)
     log.debug("STACK: " + str(stack))
+    # print 'stack = %s , mem = %s, gas=%s' % (stack, mem, analysis['gas'])
 
     current_edge = Edge(pre_block, block)
     if visited_edges.has_key(current_edge):
@@ -845,6 +855,7 @@ def sym_exec_block(block, pre_block, visited, depth, stack, mem, memory, global_
             if solver.check() == unsat:
                 log.debug("INFEASIBLE PATH DETECTED")
             else:
+                print "unconditional 1 stack: %s" % stack
                 left_branch = vertices[block].get_jump_target()
                 stack1 = list(stack)
                 mem1 = dict(mem)
@@ -878,6 +889,7 @@ def sym_exec_block(block, pre_block, visited, depth, stack, mem, memory, global_
                 # the else branch
                 log.debug("INFEASIBLE PATH DETECTED")
             else:
+
                 right_branch = vertices[block].get_falls_to()
                 stack1 = list(stack)
                 mem1 = dict(mem)
@@ -943,7 +955,7 @@ def sym_exec_ins(start, instr, stack, mem, memory, global_state, path_conditions
     # this should be done before symbolically executing the instruction,
     # since SE will modify the stack and mem
     update_analysis(analysis, instr_parts[0], stack, mem, global_state, path_conditions_and_vars, solver)
-
+    print 'instr = %s ' % instr
     log.debug("==============================")
     log.debug("EXECUTING: " + instr)
 
@@ -2078,6 +2090,8 @@ def run_callstack_attack():
     if not isTesting():
         log.info("\t  CallStack Attack: \t %s", result)
     results['callstack'] = result
+    with open('callstackres.txt', 'w') as of:
+        of.write(' '.join(str(instr)))
 
 def print_state(stack, mem, global_state):
     log.debug("STACK: " + str(stack))

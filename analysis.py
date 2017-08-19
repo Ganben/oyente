@@ -163,6 +163,7 @@ def update_analysis(analysis, opcode, stack, mem, global_state, path_conditions_
     if opcode == "CALL":
         recipient = stack[1]
         transfer_amount = stack[2]
+        print 'check>>>>>>>>>>>>>>>>>>'
         reentrancy_result = check_reentrancy_bug(path_conditions_and_vars, global_state)
         analysis["reentrancy_bug"].append(reentrancy_result)
         if isinstance(transfer_amount, (int, long)) and transfer_amount == 0:
@@ -203,6 +204,7 @@ def update_analysis(analysis, opcode, stack, mem, global_state, path_conditions_
                     analysis["sstore"][stored_address] = [stored_value]
             else:
                 raise ValueError('STACK underflow')
+    # print ' update analysis %s ' % analysis
 
 
 # Check if it is possible to execute a path after a previous path
