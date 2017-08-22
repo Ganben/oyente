@@ -10,7 +10,7 @@ import global_params
 log = logging.getLogger(__name__)
 log.setLevel(level=logging.DEBUG)
 # create console handler and set level to debug
-ch = logging.StreamHandler()
+ch = logging.FileHandler('analysis.log')
 ch.setLevel(logging.DEBUG)
 
 # create formatter

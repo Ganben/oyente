@@ -30,7 +30,7 @@ log = logging.getLogger('symExec')
 
 log.setLevel(level=logging.DEBUG)
 # create console handler and set level to debug
-ch = logging.StreamHandler()
+ch = logging.FileHandler('symLog.log')
 ch.setLevel(logging.DEBUG)
 
 # create formatter
@@ -806,7 +806,7 @@ def sym_exec_block(block, pre_block, visited, depth, stack, mem, memory, global_
 
     for instr in block_ins:
         sym_exec_ins(block, instr, stack, mem, memory, global_state, path_conditions_and_vars, analysis, path, models)
-
+        log.debug('ins update stack %s' % stack)
     # Mark that this basic block in the visited blocks
     visited.append(block)
     depth += 1
@@ -858,7 +858,7 @@ def sym_exec_block(block, pre_block, visited, depth, stack, mem, memory, global_
     elif jump_type[block] == "conditional":  # executing "JUMPI"
 
         # A choice point, we proceed with depth first search
-
+        log.debug('block = %s' % block)
         branch_expression = vertices[block].get_branch_expression()
 
         log.debug("Branch expression: " + str(branch_expression))
@@ -904,7 +904,7 @@ def sym_exec_block(block, pre_block, visited, depth, stack, mem, memory, global_
                 # the else branch
                 log.debug("INFEASIBLE PATH DETECTED")
             else:
-
+                log.debug('unconditional neg exec %s ' % analysis['gas'])
                 right_branch = vertices[block].get_falls_to()
                 stack1 = list(stack)
                 mem1 = dict(mem)
@@ -970,7 +970,7 @@ def sym_exec_ins(start, instr, stack, mem, memory, global_state, path_conditions
     # this should be done before symbolically executing the instruction,
     # since SE will modify the stack and mem
     update_analysis(analysis, instr_parts[0], stack, mem, global_state, path_conditions_and_vars, solver)
-    log.debug('stack = %s ' % stack)
+    #log.debug('stack = %s ' % stack)
     log.debug("==============================")
     log.debug("EXECUTING: " + instr)
 
@@ -1500,6 +1500,7 @@ def sym_exec_ins(start, instr, stack, mem, memory, global_state, path_conditions
         stack.insert(0, global_state["origin"])
     elif instr_parts[0] == "CALLVALUE":  # get value of this transaction
         global_state["pc"] = global_state["pc"] + 1
+        log.debug('callvalue=globa_state %s' % global_state["value"])
         stack.insert(0, global_state["value"])
     elif instr_parts[0] == "CALLDATALOAD":  # from input data from environment
         if len(stack) > 0:
@@ -1862,11 +1863,13 @@ def sym_exec_ins(start, instr, stack, mem, memory, global_state, path_conditions
             vertices[start].set_jump_target(target_address)
             flag = stack.pop(0)
             branch_expression = (BitVecVal(0, 1) == BitVecVal(1, 1))
+            log.debug('flag pop o stack %s' % flag)
             if isReal(flag):
                 if flag != 0:
                     branch_expression = True
             else:
                 branch_expression = (flag != 0)
+            log.info('set branch on %s of %s' % (start, branch_expression))
             vertices[start].set_branch_expression(branch_expression)
             if target_address not in edges[start]:
                 edges[start].append(target_address)
@@ -2078,8 +2081,8 @@ def sym_exec_ins(start, instr, stack, mem, memory, global_state, path_conditions
         raise Exception('UNKNOWN INSTRUCTION: ' + instr_parts[0])
 
     log.debug('==============END instr exec================')
-    log.debug(' %s \n %s \n %s' % (stack, mem, analysis['gas']))
-    print_state(stack, mem, global_state)
+    log.debug(' len(stack) %s len(mem) %s %s' % (len(stack), len(mem), analysis['gas']))
+    #print_state(stack, mem, global_state)
 
 # check for evm sequence SWAP4, POP, POP, POP, POP, ISZERO
 def check_callstack_attack(disasm):
